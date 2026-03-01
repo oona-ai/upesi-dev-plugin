@@ -19,7 +19,7 @@ All tools that operate on an app use `app` (subdomain or UUID) as parameter.
 | `upesi_app_info` | **`app`** | App details: file count, total size, URL. |
 | `upesi_app_destroy` | **`app`**, **`confirm`** | Delete app + all data. `confirm` = subdomain. |
 | `upesi_files_list` | **`app`** | List files with path, size, content_type. |
-| `upesi_files_upload` | **`app`**, **`path`**, **`content_base64`**, `content_type`? | Upsert file. `content_type` auto-detected if omitted. |
+| `upesi_files_upload` | **`app`**, **`path`**, `content`?, `content_base64`?, `content_type`? | Upsert file. Use `content` for text, `content_base64` for binary. |
 | `upesi_files_download` | **`app`**, **`path`** | Download file content (returned as text). |
 | `upesi_files_delete` | **`app`**, **`path`** | Delete file. Cannot be undone. |
 | `upesi_custom_domains_list` | **`app`** | List custom domains (max 5 per app). |
@@ -60,17 +60,21 @@ images/logo.png         # Static assets
 
 ### Uploading Files
 - Always upload `index.html` first – it's the entry point at the root URL
-- Base64-encode ALL file content before uploading (standard base64, not URL-safe)
+- **Text files** (HTML, CSS, JS, JSON, SVG, etc.): use `content` – pass the file content as plain string
+- **Binary files** (images, fonts, etc.): use `content_base64` – pass base64-encoded content
+- If both `content` and `content_base64` are provided, `content_base64` takes precedence
 - Upload files one at a time for reliability and clear error handling
 - After uploading, call `upesi_app_info` to verify file count and total size
 - `upesi_files_upload` is an upsert: creates new files or updates existing ones
 - Optional `content_type` is auto-detected from file extension; set it explicitly for ambiguous types
 
 ### File Content Encoding
-Base64-encode all content (HTML, CSS, JS, images, fonts) before uploading:
-- Example: `"<h1>Hello</h1>"` → `"PGgxPkhlbGxvPC9oMT4="`
-- Use standard base64 encoding (not URL-safe variant)
-- **Helper script**: `python3 scripts/encode.py <file-or-directory>` outputs JSON with `path`, `content_base64`, `content_type` ready for `upesi_files_upload`
+- **Text files**: Pass directly via `content` – no encoding needed. **Never base64-encode text files manually.**
+  - Example: `content: "<h1>Hello</h1>"`
+- **Binary files**: Use the encode-files skill to generate base64, then pass via `content_base64`
+  - Run: `python3 encode.py images/logo.png` → outputs JSON with `content_base64`
+  - Example: `content_base64: "iVBORw0KGgo..."`
+- **Batch encode**: `python3 encode.py <directory>` scans all deployable files, skips `node_modules/` and `.git/`, outputs JSON array sorted with `index.html` first
 
 ### Working with Existing Apps
 - Call `upesi_files_list` to see what files are currently deployed
@@ -143,9 +147,9 @@ await db.collection('items').list({ status: { $in: ['active', 'pending'] } });
 ### Deploy a New Static Site
 ```
 1. upesi_app_create(app: "my-site")
-2. upesi_files_upload(app: "my-site", path: "index.html", content_base64: "<base64>")
-3. upesi_files_upload(app: "my-site", path: "css/style.css", content_base64: "<base64>")
-4. upesi_files_upload(app: "my-site", path: "js/app.js", content_base64: "<base64>")
+2. upesi_files_upload(app: "my-site", path: "index.html", content: "<html>...</html>")
+3. upesi_files_upload(app: "my-site", path: "css/style.css", content: "body { ... }")
+4. upesi_files_upload(app: "my-site", path: "js/app.js", content: "console.log('hi')")
 5. upesi_app_info(app: "my-site")  # verify: check file_count and total_bytes
 ```
 
@@ -154,15 +158,14 @@ await db.collection('items').list({ status: { $in: ['active', 'pending'] } });
 1. upesi_files_list(app: "my-site")           # see current files
 2. upesi_files_download(app: "my-site", path: "index.html")  # read current content
 3. # modify content locally
-4. upesi_files_upload(app: "my-site", path: "index.html", content_base64: "<new-base64>")
+4. upesi_files_upload(app: "my-site", path: "index.html", content: "<html>...</html>")
 ```
 
 ### Deploy a Site with Database
 ```
 1. upesi_app_create(app: "my-app")
 2. upesi_db_key(app: "my-app")               # creates API key on first call
-3. upesi_files_upload(app: "my-app", path: "index.html", content_base64: "<base64>")
-   # HTML must include: <script src="/_db/db.js"></script>
+3. upesi_files_upload(app: "my-app", path: "index.html", content: "<html>...<script src='/_db/db.js'></script>...</html>")
 4. upesi_app_info(app: "my-app")
 5. upesi_db_status(app: "my-app")             # verify DB is active
 ```

@@ -1,6 +1,6 @@
 {
   "name": "upesi",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Deploy and manage static web apps on Upesi. 17 MCP tools for app management, file operations, databases, and custom domains.",
   "author": {
     "name": "Upesi"

@@ -17,7 +17,7 @@ All Upesi MCP tools use `app` (subdomain or UUID) as their key parameter.
 2. **Check existing apps**: `upesi_apps_list` — see if the app already exists
 3. **Create if needed**: `upesi_app_create(app: "my-site")` — subdomain is permanent
 4. **Build the app**: Write clean, modern HTML/CSS/JS. Use Tailwind CSS via CDN when appropriate.
-5. **Upload files**: Base64-encode each file, upload via `upesi_files_upload(app: "my-site", path: "index.html", content_base64: "...")`. Always start with `index.html`.
+5. **Upload files**: Upload text files via `upesi_files_upload(app: "my-site", path: "index.html", content: "<html>...</html>")`. Use `content_base64` only for binary files (images, fonts). Always start with `index.html`.
 6. **Verify**: `upesi_app_info(app: "my-site")` — check file_count and total_bytes. Share the live URL.
 
 ### When asked to update an existing app:
@@ -25,7 +25,7 @@ All Upesi MCP tools use `app` (subdomain or UUID) as their key parameter.
 1. `upesi_files_list(app: "my-site")` — see current files
 2. `upesi_files_download(app: "my-site", path: "index.html")` — read before modifying
 3. Modify content as needed
-4. `upesi_files_upload(app: "my-site", path: "index.html", content_base64: "<new-base64>")`
+4. `upesi_files_upload(app: "my-site", path: "index.html", content: "<html>...</html>")`
 
 ### When the app needs a database:
 
@@ -55,8 +55,8 @@ All Upesi MCP tools use `app` (subdomain or UUID) as their key parameter.
 - Keep apps lightweight — minimize file count and size
 - Use CDN-hosted libraries (Tailwind, Alpine.js) instead of uploading frameworks
 - Always include `<title>` and `<meta name="viewport">` tags
-- Base64-encode all content using standard base64 (not URL-safe)
-- **Use `python3 scripts/encode.py <dir>` to batch-encode files** — outputs JSON with `path`, `content_base64`, `content_type` ready for `upesi_files_upload`
+- Use `content` for text files (HTML, CSS, JS, JSON, SVG) – no encoding needed. **Never base64-encode text files manually.**
+- Use `content_base64` for binary files (images, fonts) – use the encode-files skill to generate the base64 string
 - Upload `index.html` first, then supporting files
 - Set `content_type` explicitly for ambiguous file types (auto-detected from extension otherwise)
 
