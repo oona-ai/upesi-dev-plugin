@@ -103,36 +103,28 @@ Every Upesi app includes a schemaless document database. Use it to store user da
 
 ### JavaScript API (in-browser)
 
+Collections are accessed as properties on `db` (not methods). All operations are async.
+
 ```javascript
-// Create a document
-const item = await db.collection('todos').create({ title: 'Buy milk', done: false });
-
-// List documents
-const todos = await db.collection('todos').list();
-
-// Filter documents
-const active = await db.collection('todos').list({ done: false });
-
-// Update a document
-await db.collection('todos').update(item.id, { done: true });
-
-// Delete a document
-await db.collection('todos').delete(item.id);
-
-// Count documents
-const count = await db.collection('todos').count();
+const post = await db.posts.insert({ title: 'Hello', body: 'World' });   // Create
+const { data, total } = await db.posts.find({ status: 'published' });     // List/Filter
+const post = await db.posts.findOne(42);                                   // Get by ID
+await db.posts.update(42, { title: 'New' });                              // Merge fields
+await db.posts.replace(42, { title: 'New' });                             // Replace all fields
+await db.posts.delete(42);                                                 // Delete
+const { count } = await db.posts.count({ status: 'draft' });              // Count
 ```
+
+**Full API reference:** Use the `upesidb-js-api` skill for complete documentation with all method signatures, filter operators, sorting, pagination, and error handling.
 
 ### Filter Operators
 
-`$gt`, `$gte`, `$lt`, `$lte`, `$ne`, `$in`, `$or`
+`$gt`, `$gte`, `$lt`, `$lte`, `$ne`, `$in`, `$or` — used in `find()` and `count()`:
 
 ```javascript
-// Score greater than 100
-await db.collection('scores').list({ score: { $gt: 100 } });
-
-// Status is either 'active' or 'pending'
-await db.collection('items').list({ status: { $in: ['active', 'pending'] } });
+await db.scores.find({ score: { $gt: 100 } });
+await db.items.find({ status: { $in: ['active', 'pending'] } });
+await db.posts.find({ status: 'published' }, { sort: { created_at: -1 }, limit: 10 });
 ```
 
 ## Error Handling

@@ -31,7 +31,7 @@ All Upesi MCP tools use `app` (subdomain or UUID) as their key parameter.
 
 1. `upesi_db_key(app: "my-app")` — get or create the API key
 2. Include `<script src="/_db/db.js"></script>` in the HTML
-3. Use the `db` client: `db.collection('name').create/list/update/delete/count`
+3. Use the `db` client: `db.posts.insert/find/findOne/update/delete/count`
 4. `upesi_db_status(app: "my-app")` — verify database is active
 
 ### Destructive operations:
