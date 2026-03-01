@@ -1,0 +1,23 @@
+{
+  "name": "upesi-marketplace",
+  "owner": {
+    "name": "Upesi",
+    "email": "hello@upesi.dev"
+  },
+  "metadata": {
+    "description": "Upesi hosting tools for Claude Code",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "upesi",
+      "source": ".",
+      "description": "Deploy and manage static web apps on Upesi. 17 MCP tools for app management, file operations, databases, and custom domains.",
+      "version": "1.0.0",
+      "author": { "name": "Upesi" },
+      "homepage": "https://www.upesi.dev",
+      "keywords": ["hosting", "deployment", "static-sites", "mcp"],
+      "category": "deployment"
+    }
+  ]
+}

@@ -1,0 +1,196 @@
+---
+name: upesi-workflow
+description: Upesi deployment workflow guidance. Use when deploying web apps, managing files, databases, or custom domains on Upesi.
+---
+
+# Upesi Deployment Workflow
+
+You are connected to an Upesi hosting server via MCP. Use these instructions to effectively deploy and manage static web apps with optional database functionality.
+
+## Tool Reference
+
+All tools that operate on an app use `app` (subdomain or UUID) as parameter.
+
+| Tool | Parameters | Notes |
+|------|-----------|-------|
+| `upesi_whoami` | *(none)* | Verify authentication. Call first. |
+| `upesi_apps_list` | `app`? | List all apps. Optional `app` to filter by subdomain. |
+| `upesi_app_create` | **`app`** | Create app. `app` = desired subdomain (permanent). |
+| `upesi_app_info` | **`app`** | App details: file count, total size, URL. |
+| `upesi_app_destroy` | **`app`**, **`confirm`** | Delete app + all data. `confirm` = subdomain. |
+| `upesi_files_list` | **`app`** | List files with path, size, content_type. |
+| `upesi_files_upload` | **`app`**, **`path`**, **`content_base64`**, `content_type`? | Upsert file. `content_type` auto-detected if omitted. |
+| `upesi_files_download` | **`app`**, **`path`** | Download file content (returned as text). |
+| `upesi_files_delete` | **`app`**, **`path`** | Delete file. Cannot be undone. |
+| `upesi_custom_domains_list` | **`app`** | List custom domains (max 5 per app). |
+| `upesi_custom_domains_add` | **`app`**, **`domain_name`** | Add domain. User must configure DNS CNAME. |
+| `upesi_custom_domains_remove` | **`app`**, **`domain_name`** | Remove domain. Cannot be undone. |
+| `upesi_db_status` | **`app`** | Collections, document counts, API key status. |
+| `upesi_db_key` | **`app`** | Show/create API key (auto-embedded in `/_db/db.js`). |
+| `upesi_db_key_rotate` | **`app`** | Rotate key. Old key stops working immediately. |
+| `upesi_db_reset` | **`app`**, **`confirm`** | Delete ALL DB data. `confirm` must be `"yes"`. |
+| `upesi_skill` | *(none)* | These instructions. |
+
+**Bold** = required, `?` = optional.
+
+## Recommended Tool Order
+
+1. `upesi_whoami` – Verify authentication
+2. `upesi_apps_list` – See existing apps
+3. `upesi_app_create` – Create new app (if needed)
+4. `upesi_files_upload` – Deploy files (always start with `index.html`)
+5. `upesi_app_info` – Verify deployment succeeded
+
+## Best Practices
+
+### Creating Apps
+- Choose short, descriptive subdomains: `snake-game`, `my-portfolio`, `todo-app`
+- Subdomains are permanent and cannot be changed after creation
+- Valid format: lowercase letters, numbers, hyphens; 2-32 chars; must start/end with alphanumeric
+
+### File Structure
+Every app needs at least an `index.html` as entry point. Recommended structure:
+```
+index.html              # Entry point (served at root URL)
+css/style.css           # Stylesheets
+js/app.js               # Application logic
+images/logo.png         # Static assets
+404.html                # Custom error page (optional)
+```
+
+### Uploading Files
+- Always upload `index.html` first – it's the entry point at the root URL
+- Base64-encode ALL file content before uploading (standard base64, not URL-safe)
+- Upload files one at a time for reliability and clear error handling
+- After uploading, call `upesi_app_info` to verify file count and total size
+- `upesi_files_upload` is an upsert: creates new files or updates existing ones
+- Optional `content_type` is auto-detected from file extension; set it explicitly for ambiguous types
+
+### File Content Encoding
+Base64-encode all content (HTML, CSS, JS, images, fonts) before uploading:
+- Example: `"<h1>Hello</h1>"` → `"PGgxPkhlbGxvPC9oMT4="`
+- Use standard base64 encoding (not URL-safe variant)
+- **Helper script**: `python3 scripts/encode.py <file-or-directory>` outputs JSON with `path`, `content_base64`, `content_type` ready for `upesi_files_upload`
+
+### Working with Existing Apps
+- Call `upesi_files_list` to see what files are currently deployed
+- Call `upesi_files_download` to read a file's content before modifying it
+- Never blindly overwrite – always check the current state first
+
+### Custom Domains
+Add up to 5 custom domains per app:
+1. `upesi_custom_domains_add(app: "my-app", domain_name: "mysite.com")`
+2. User configures DNS: `CNAME mysite.com → my-app.upesi.dev`
+3. SSL is handled automatically
+
+### Destructive Operations
+- `upesi_app_destroy`: `confirm` must exactly match the app's subdomain
+- `upesi_db_reset`: `confirm` must be the string `"yes"`
+- `upesi_files_delete` and `upesi_custom_domains_remove`: no confirmation, but cannot be undone
+
+## UpesiDB – Built-in Document Database
+
+Every Upesi app includes a schemaless document database. Use it to store user data, form submissions, game scores, or any structured data – directly from the browser, no backend needed.
+
+### Setup
+1. `upesi_db_key(app: "my-app")` – get or create the API key
+2. Include in HTML: `<script src="/_db/db.js"></script>`
+3. The JS client auto-configures with the correct API key
+
+### JavaScript API (in-browser)
+
+```javascript
+// Create a document
+const item = await db.collection('todos').create({ title: 'Buy milk', done: false });
+
+// List documents
+const todos = await db.collection('todos').list();
+
+// Filter documents
+const active = await db.collection('todos').list({ done: false });
+
+// Update a document
+await db.collection('todos').update(item.id, { done: true });
+
+// Delete a document
+await db.collection('todos').delete(item.id);
+
+// Count documents
+const count = await db.collection('todos').count();
+```
+
+### Filter Operators
+
+`$gt`, `$gte`, `$lt`, `$lte`, `$ne`, `$in`, `$or`
+
+```javascript
+// Score greater than 100
+await db.collection('scores').list({ score: { $gt: 100 } });
+
+// Status is either 'active' or 'pending'
+await db.collection('items').list({ status: { $in: ['active', 'pending'] } });
+```
+
+## Error Handling
+
+- **"App not found"**: Call `upesi_apps_list` to verify the app exists and check for typos
+- **"unauthorized"**: The OAuth session may have expired – the user needs to re-authenticate
+- **"Confirmation mismatch"**: For `app_destroy`, `confirm` must match the exact subdomain
+- **Validation errors**: The error message describes what's wrong – follow its guidance
+
+## Common Workflows
+
+### Deploy a New Static Site
+```
+1. upesi_app_create(app: "my-site")
+2. upesi_files_upload(app: "my-site", path: "index.html", content_base64: "<base64>")
+3. upesi_files_upload(app: "my-site", path: "css/style.css", content_base64: "<base64>")
+4. upesi_files_upload(app: "my-site", path: "js/app.js", content_base64: "<base64>")
+5. upesi_app_info(app: "my-site")  # verify: check file_count and total_bytes
+```
+
+### Update an Existing Site
+```
+1. upesi_files_list(app: "my-site")           # see current files
+2. upesi_files_download(app: "my-site", path: "index.html")  # read current content
+3. # modify content locally
+4. upesi_files_upload(app: "my-site", path: "index.html", content_base64: "<new-base64>")
+```
+
+### Deploy a Site with Database
+```
+1. upesi_app_create(app: "my-app")
+2. upesi_db_key(app: "my-app")               # creates API key on first call
+3. upesi_files_upload(app: "my-app", path: "index.html", content_base64: "<base64>")
+   # HTML must include: <script src="/_db/db.js"></script>
+4. upesi_app_info(app: "my-app")
+5. upesi_db_status(app: "my-app")             # verify DB is active
+```
+
+### Add Custom Domain
+```
+1. upesi_custom_domains_add(app: "my-site", domain_name: "mysite.com")
+2. Inform user: set DNS CNAME record mysite.com → my-site.upesi.dev
+3. upesi_custom_domains_list(app: "my-site")  # verify domain was added
+```
+
+### Clean Up / Delete
+```
+1. upesi_files_delete(app: "my-site", path: "old-page.html")  # remove single file
+2. upesi_custom_domains_remove(app: "my-site", domain_name: "mysite.com")  # remove domain
+3. upesi_db_reset(app: "my-site", confirm: "yes")           # delete all DB data
+4. upesi_app_destroy(app: "my-site", confirm: "my-site")    # delete entire app
+```
+
+## Limits
+
+| Resource | Limit |
+|----------|-------|
+| File size | 10 MB |
+| Files per app | 100 |
+| Total storage per app | 50 MB |
+| Path depth | 5 directory levels |
+| Custom domains per app | 5 |
+| DB collections per app | 100 |
+| DB documents per collection | 100,000 |
+| DB document size | 1 MB |

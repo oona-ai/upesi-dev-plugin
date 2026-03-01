@@ -1,0 +1,7 @@
+{
+  "name": "upesi",
+  "description": "Deploy and manage static web apps on Upesi via MCP",
+  "version": "1.0.0",
+  "author": { "name": "Upesi", "email": "hello@upesi.dev" },
+  "homepage": "https://www.upesi.dev"
+}

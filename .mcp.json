@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "upesi": {
+      "url": "https://api.upesi.dev/mcp"
+    }
+  }
+}
