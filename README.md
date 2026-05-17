@@ -42,6 +42,12 @@ claude --plugin-dir /path/to/upesi-dev-plugin
 | `upesi_custom_domains_list` | List custom domains |
 | `upesi_custom_domains_add` | Add a custom domain |
 | `upesi_custom_domains_remove` | Remove a custom domain |
+| `upesi_variables_list` | List app environment variables (values hidden) |
+| `upesi_variable_set` | Set or update an app environment variable |
+| `upesi_variable_remove` | Remove an app environment variable |
+| `upesi_proxy_routes_list` | List app-specific proxy routes |
+| `upesi_proxy_route_set` | Set or update an app-specific proxy route |
+| `upesi_proxy_route_remove` | Remove an app-specific proxy route |
 | `upesi_db_status` | Show database status |
 | `upesi_db_reset` | Reset database |
 | `upesi_db_key` | Show API key |
@@ -51,3 +57,5 @@ claude --plugin-dir /path/to/upesi-dev-plugin
 ## Authentication
 
 OAuth 2.0 with PKCE. When connecting via Claude Desktop or Claude Code, authentication is handled automatically.
+
+CLI projects can keep declarative proxy routes in `.upesi/proxy.json` in the app project directory and apply them with `upesi proxy routes apply`. The file is local config, not a hosted asset.

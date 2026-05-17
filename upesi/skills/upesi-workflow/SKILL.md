@@ -27,6 +27,12 @@ All tools that operate on an app use `app` (subdomain or UUID) as parameter.
 | `upesi_custom_domains_list` | **`app`** | List custom domains (max 5 per app), including DNS target and status URL. |
 | `upesi_custom_domains_add` | **`app`**, **`domain_name`** | Add domain. User must configure DNS CNAME to `ingress.upesi.dev`. |
 | `upesi_custom_domains_remove` | **`app`**, **`domain_name`** | Remove domain. Cannot be undone. |
+| `upesi_variables_list` | **`app`** | List app environment variable metadata. Secret values are never returned. |
+| `upesi_variable_set` | **`app`**, **`name`**, **`value`** | Set/update an app variable. Optional `allowed_upstreams` restricts proxy use by host. |
+| `upesi_variable_remove` | **`app`**, **`name`** | Remove an app variable. |
+| `upesi_proxy_routes_list` | **`app`** | List app-specific proxy routes. |
+| `upesi_proxy_route_set` | **`app`**, **`path`**, **`upstream`** | Set/update a same-origin proxy route. Optional `method` and `headers`. |
+| `upesi_proxy_route_remove` | **`app`**, **`path`** | Remove an app-specific proxy route. |
 | `upesi_db_status` | **`app`** | Collections, document counts, API key status. |
 | `upesi_db_key` | **`app`** | Show/create API key (auto-embedded in `/_db/db.js`). |
 | `upesi_db_key_rotate` | **`app`** | Rotate key. Old key stops working immediately. |
@@ -98,10 +104,22 @@ Add up to 5 custom domains per app:
 3. Check the returned `status_url` or ask the user to run `upesi domains status mysite.com`
 4. SSL is handled automatically
 
+### Environment Variables & Proxy Routes
+Use app-scoped variables for API keys that must not be exposed in browser code:
+
+1. `upesi_variable_set(app: "my-app", name: "OPENROUTER_API_KEY", value: "sk-...", allowed_upstreams: ["openrouter.ai"])`
+2. `upesi_proxy_route_set(app: "my-app", path: "/api/chat", upstream: "https://openrouter.ai/api/v1/chat/completions", method: "POST", headers: { "Authorization": "Bearer ${OPENROUTER_API_KEY}" })`
+3. Frontend code calls the same-origin path, e.g. `fetch("/api/chat")`
+4. Upesi injects the variable server-side and forwards the request to the upstream
+
+For CLI-driven projects, keep declarative proxy config in the app project directory at `.upesi/proxy.json` and run `upesi proxy routes apply`. `upesi sync` also applies that local config and ignores `.upesi/` during file upload.
+
+Values are encrypted and never returned by `upesi_variables_list`.
+
 ### Destructive Operations
 - `upesi_app_destroy`: `confirm` must exactly match the app's subdomain
 - `upesi_db_reset`: `confirm` must be the string `"yes"`
-- `upesi_files_delete` and `upesi_custom_domains_remove`: no confirmation, but cannot be undone
+- `upesi_files_delete`, `upesi_custom_domains_remove`, `upesi_variable_remove`, and `upesi_proxy_route_remove`: no confirmation, but cannot be undone
 
 ## UpesiDB – Built-in Document Database
 
