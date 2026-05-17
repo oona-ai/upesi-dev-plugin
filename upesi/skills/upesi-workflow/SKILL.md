@@ -18,12 +18,14 @@ All tools that operate on an app use `app` (subdomain or UUID) as parameter.
 | `upesi_app_create` | **`app`** | Create app. `app` = desired subdomain (permanent). |
 | `upesi_app_info` | **`app`** | App details: file count, total size, URL. |
 | `upesi_app_destroy` | **`app`**, **`confirm`** | Delete app + all data. `confirm` = subdomain. |
+| `upesi_app_spa_enable` | **`app`** | Enable SPA fallback to `index.html` for extensionless browser routes. |
+| `upesi_app_spa_disable` | **`app`** | Disable SPA fallback. |
 | `upesi_files_list` | **`app`** | List files with path, size, content_type. |
 | `upesi_files_upload` | **`app`**, **`path`**, `content`?, `content_base64`?, `content_type`? | Upsert file. Use `content` for text, `content_base64` for binary. |
 | `upesi_files_download` | **`app`**, **`path`** | Download file content (returned as text). |
 | `upesi_files_delete` | **`app`**, **`path`** | Delete file. Cannot be undone. |
-| `upesi_custom_domains_list` | **`app`** | List custom domains (max 5 per app). |
-| `upesi_custom_domains_add` | **`app`**, **`domain_name`** | Add domain. User must configure DNS CNAME. |
+| `upesi_custom_domains_list` | **`app`** | List custom domains (max 5 per app), including DNS target and status URL. |
+| `upesi_custom_domains_add` | **`app`**, **`domain_name`** | Add domain. User must configure DNS CNAME to `ingress.upesi.dev`. |
 | `upesi_custom_domains_remove` | **`app`**, **`domain_name`** | Remove domain. Cannot be undone. |
 | `upesi_db_status` | **`app`** | Collections, document counts, API key status. |
 | `upesi_db_key` | **`app`** | Show/create API key (auto-embedded in `/_db/db.js`). |
@@ -81,11 +83,20 @@ images/logo.png         # Static assets
 - Call `upesi_files_download` to read a file's content before modifying it
 - Never blindly overwrite – always check the current state first
 
+### SPA Mode
+Enable SPA mode for React Router, Vue Router, Svelte, Vite, or other static apps with client-side routing:
+
+1. `upesi_app_spa_enable(app: "my-app")`
+2. Upload `index.html` and assets normally
+3. Missing routes like `/dashboard/settings` fall back to `index.html`
+4. Missing asset paths like `/assets/app.js` still return 404
+
 ### Custom Domains
 Add up to 5 custom domains per app:
 1. `upesi_custom_domains_add(app: "my-app", domain_name: "mysite.com")`
-2. User configures DNS: `CNAME mysite.com → my-app.upesi.dev`
-3. SSL is handled automatically
+2. User configures DNS: `CNAME mysite.com -> ingress.upesi.dev`
+3. Check the returned `status_url` or ask the user to run `upesi domains status mysite.com`
+4. SSL is handled automatically
 
 ### Destructive Operations
 - `upesi_app_destroy`: `confirm` must exactly match the app's subdomain
@@ -145,6 +156,15 @@ await db.posts.find({ status: 'published' }, { sort: { created_at: -1 }, limit: 
 5. upesi_app_info(app: "my-site")  # verify: check file_count and total_bytes
 ```
 
+### Deploy a Client-Routed SPA
+```
+1. upesi_app_create(app: "my-spa")
+2. upesi_app_spa_enable(app: "my-spa")
+3. upesi_files_upload(app: "my-spa", path: "index.html", content: "<html>...</html>")
+4. upesi_files_upload(app: "my-spa", path: "assets/app.js", content: "...")
+5. upesi_app_info(app: "my-spa")  # verify: spa_mode should be true
+```
+
 ### Update an Existing Site
 ```
 1. upesi_files_list(app: "my-site")           # see current files
@@ -165,7 +185,7 @@ await db.posts.find({ status: 'published' }, { sort: { created_at: -1 }, limit: 
 ### Add Custom Domain
 ```
 1. upesi_custom_domains_add(app: "my-site", domain_name: "mysite.com")
-2. Inform user: set DNS CNAME record mysite.com → my-site.upesi.dev
+2. Inform user: set DNS CNAME record mysite.com -> ingress.upesi.dev
 3. upesi_custom_domains_list(app: "my-site")  # verify domain was added
 ```
 
