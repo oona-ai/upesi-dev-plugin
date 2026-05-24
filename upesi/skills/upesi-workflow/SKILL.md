@@ -34,9 +34,16 @@ All tools that operate on an app use `app` (subdomain or UUID) as parameter.
 | `upesi_proxy_route_set` | **`app`**, **`path`**, **`upstream`** | Set/update a same-origin proxy route. Optional `method` and `headers`. |
 | `upesi_proxy_route_remove` | **`app`**, **`path`** | Remove an app-specific proxy route. |
 | `upesi_db_status` | **`app`** | Collections, document counts, API key status. |
-| `upesi_db_key` | **`app`** | Show/create API key (auto-embedded in `/_db/db.js`). |
-| `upesi_db_key_rotate` | **`app`** | Rotate key. Old key stops working immediately. |
+| `upesi_db_key` | **`app`** | Show/create browser API key (auto-embedded in `/_db/db.js`). Agents should prefer MCP CRUD tools for direct data work. |
+| `upesi_db_key_rotate` | **`app`** | Rotate browser key. Old browser clients stop working immediately until reload. |
 | `upesi_db_reset` | **`app`**, **`confirm`** | Delete ALL DB data. `confirm` must be `"yes"`. |
+| `upesi_db_find` | **`app`**, **`collection`**, `filter`?, `sort`?, `limit`?, `offset`? | Query documents. Returns `{ data, total, limit, offset }`. |
+| `upesi_db_get` | **`app`**, **`collection`**, **`id`** | Read one document by id. |
+| `upesi_db_insert` | **`app`**, **`collection`**, **`data`** | Create one document. Pass document fields directly as `data`. |
+| `upesi_db_update` | **`app`**, **`collection`**, **`id`**, **`data`** | Merge fields, preserving omitted fields. |
+| `upesi_db_replace` | **`app`**, **`collection`**, **`id`**, **`data`** | Replace all user fields; omitted fields are removed. |
+| `upesi_db_delete` | **`app`**, **`collection`**, **`id`** | Permanently delete one document. |
+| `upesi_db_count` | **`app`**, **`collection`**, `filter`? | Count matching documents without returning them. |
 | `upesi_skill` | *(none)* | These instructions. |
 
 **Bold** = required, `?` = optional.
@@ -119,7 +126,7 @@ Values are encrypted and never returned by `upesi_variables_list`.
 ### Destructive Operations
 - `upesi_app_destroy`: `confirm` must exactly match the app's subdomain
 - `upesi_db_reset`: `confirm` must be the string `"yes"`
-- `upesi_files_delete`, `upesi_custom_domains_remove`, `upesi_variable_remove`, and `upesi_proxy_route_remove`: no confirmation, but cannot be undone
+- `upesi_db_delete`, `upesi_db_replace`, `upesi_files_delete`, `upesi_custom_domains_remove`, `upesi_variable_remove`, and `upesi_proxy_route_remove`: no confirmation, but cannot be undone or can remove data
 
 ## UpesiDB – Built-in Document Database
 
@@ -145,6 +152,22 @@ const { count } = await db.posts.count({ status: 'draft' });              // Cou
 ```
 
 **Full API reference:** Use the `upesidb-js-api` skill for complete documentation with all method signatures, filter operators, sorting, pagination, and error handling.
+
+### MCP API (agent-side)
+
+Use MCP CRUD tools when the agent needs to inspect or modify data directly. These tools use owner auth and do not require handling the browser API key.
+
+```javascript
+upesi_db_insert(app: "my-app", collection: "posts", data: { title: "Hello", status: "draft" });
+upesi_db_find(app: "my-app", collection: "posts", filter: { status: "draft" }, sort: { created_at: -1 }, limit: 10);
+upesi_db_get(app: "my-app", collection: "posts", id: "42");
+upesi_db_update(app: "my-app", collection: "posts", id: "42", data: { status: "published" });
+upesi_db_replace(app: "my-app", collection: "posts", id: "42", data: { title: "Only this remains" });
+upesi_db_delete(app: "my-app", collection: "posts", id: "42");
+upesi_db_count(app: "my-app", collection: "posts", filter: { status: "published" });
+```
+
+Collection names must match `^[a-z][a-z0-9_]{0,62}$`. `upesi_db_update` merges and preserves omitted fields; `upesi_db_replace` removes omitted user fields.
 
 ### Filter Operators
 
@@ -198,6 +221,15 @@ await db.posts.find({ status: 'published' }, { sort: { created_at: -1 }, limit: 
 3. upesi_files_upload(app: "my-app", path: "index.html", content: "<html>...<script src='/_db/db.js'></script>...</html>")
 4. upesi_app_info(app: "my-app")
 5. upesi_db_status(app: "my-app")             # verify DB is active
+```
+
+### Inspect or Seed Database Data
+```
+1. upesi_db_status(app: "my-app")             # see collections and counts
+2. upesi_db_insert(app: "my-app", collection: "posts", data: { title: "Hello", status: "draft" })
+3. upesi_db_find(app: "my-app", collection: "posts", filter: { status: "draft" })
+4. upesi_db_update(app: "my-app", collection: "posts", id: "<id>", data: { status: "published" })
+5. upesi_db_count(app: "my-app", collection: "posts", filter: { status: "published" })
 ```
 
 ### Add Custom Domain

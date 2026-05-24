@@ -17,6 +17,8 @@ No further configuration needed. The script exposes `window.db` with the correct
 
 **Prerequisite:** Call `upesi_db_key(app: "my-app")` once to create the API key.
 
+For agent-side data access over MCP, use the dedicated CRUD tools instead of handling the browser API key: `upesi_db_find`, `upesi_db_get`, `upesi_db_insert`, `upesi_db_update`, `upesi_db_replace`, `upesi_db_delete`, and `upesi_db_count`.
+
 ## Accessing Collections
 
 Collections are accessed as properties on `db`:
@@ -52,6 +54,11 @@ Documents are flat — your fields are at the top level:
 ## CRUD Methods
 
 All methods are async and return Promises.
+
+MCP uses the same document model:
+- `upesi_db_update` matches `update(id, data)` and preserves omitted fields.
+- `upesi_db_replace` matches `replace(id, data)` and removes omitted user fields.
+- `upesi_db_find` and `upesi_db_count` accept the same filter operators described below.
 
 ### insert(data) → document
 

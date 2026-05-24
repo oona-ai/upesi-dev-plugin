@@ -20,7 +20,7 @@ claude --plugin-dir /path/to/upesi-dev-plugin
 
 ## What's Included
 
-- **MCP Server** (17 tools) — app management, file operations, databases, custom domains
+- **MCP Server** (34 tools) — app management, file operations, databases, custom domains, variables, proxy routes
 - **Skill** — deployment workflow guide with all tool parameters
 - **Commands** — `/upesi:deploy`, `/upesi:status`
 - **Agent** — `web-deployer` for automated deployments
@@ -52,6 +52,13 @@ claude --plugin-dir /path/to/upesi-dev-plugin
 | `upesi_db_reset` | Reset database |
 | `upesi_db_key` | Show API key |
 | `upesi_db_key_rotate` | Rotate API key |
+| `upesi_db_find` | Query database documents |
+| `upesi_db_get` | Read one database document |
+| `upesi_db_insert` | Create one database document |
+| `upesi_db_update` | Merge fields into a document |
+| `upesi_db_replace` | Replace all user fields on a document |
+| `upesi_db_delete` | Delete one database document |
+| `upesi_db_count` | Count matching database documents |
 | `upesi_skill` | Get the complete deployment guide |
 
 ## Authentication

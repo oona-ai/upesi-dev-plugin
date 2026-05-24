@@ -34,10 +34,21 @@ All Upesi MCP tools use `app` (subdomain or UUID) as their key parameter.
 3. Use the `db` client: `db.posts.insert/find/findOne/update/delete/count`
 4. `upesi_db_status(app: "my-app")` — verify database is active
 
+### When the agent needs to inspect or seed database data:
+
+1. `upesi_db_status(app: "my-app")` — see collections and counts
+2. `upesi_db_find(app: "my-app", collection: "posts", filter: {...})` — inspect existing data
+3. `upesi_db_insert(app: "my-app", collection: "posts", data: {...})` — create data
+4. `upesi_db_update(app: "my-app", collection: "posts", id: "42", data: {...})` — merge fields and preserve omitted fields
+5. Use `upesi_db_replace` only for full replacement; omitted user fields are removed
+6. Use `upesi_db_delete` only after verifying the document id
+
 ### Destructive operations:
 
 - `upesi_files_delete(app: "my-site", path: "old.html")` — delete single file, no confirmation
 - `upesi_custom_domains_remove(app: "my-site", domain_name: "old.com")` — remove domain, no confirmation
+- `upesi_db_delete(app: "my-site", collection: "posts", id: "42")` — delete one document, no confirmation
+- `upesi_db_replace(app: "my-site", collection: "posts", id: "42", data: {...})` — removes omitted user fields
 - `upesi_db_reset(app: "my-site", confirm: "yes")` — delete ALL DB data, `confirm` must be `"yes"`
 - `upesi_app_destroy(app: "my-site", confirm: "my-site")` — delete entire app, `confirm` must match subdomain
 
